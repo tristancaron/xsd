@@ -146,3 +146,222 @@ data class VastAttribute(
     val type: String,
     val required: Boolean
 )
+
+// Nested data classes for vast.xsd elements
+data class Vast(
+    val version: String,
+    val ads: List<Ad>
+)
+
+data class Ad(
+    val id: String,
+    val sequence: String?,
+    val conditionalAd: Boolean?,
+    val adType: String?,
+    val inLine: InLine?,
+    val wrapper: Wrapper?
+)
+
+data class InLine(
+    val adSystem: AdSystem,
+    val adTitle: String,
+    val description: String?,
+    val advertiser: Advertiser?,
+    val pricing: Pricing?,
+    val survey: Survey?,
+    val error: Error?,
+    val impressions: List<Impression>,
+    val creatives: List<Creative>,
+    val extensions: List<Extension>?
+)
+
+data class Wrapper(
+    val adSystem: AdSystem,
+    val vastAdTagURI: String,
+    val error: Error?,
+    val impressions: List<Impression>,
+    val creatives: List<Creative>,
+    val extensions: List<Extension>?
+)
+
+data class AdSystem(
+    val name: String,
+    val version: String?
+)
+
+data class Advertiser(
+    val id: String?,
+    val name: String
+)
+
+data class Pricing(
+    val model: String,
+    val currency: String,
+    val value: String
+)
+
+data class Survey(
+    val uri: String
+)
+
+data class Error(
+    val uri: String
+)
+
+data class Impression(
+    val id: String?,
+    val uri: String
+)
+
+data class Creative(
+    val id: String?,
+    val sequence: String?,
+    val adId: String?,
+    val apiFramework: String?,
+    val linear: Linear?,
+    val companionAds: CompanionAds?,
+    val nonLinearAds: NonLinearAds?
+)
+
+data class Linear(
+    val duration: String,
+    val trackingEvents: List<Tracking>,
+    val videoClicks: VideoClicks?,
+    val mediaFiles: List<MediaFile>,
+    val adParameters: AdParameters?
+)
+
+data class Tracking(
+    val event: String,
+    val offset: String?,
+    val uri: String
+)
+
+data class VideoClicks(
+    val clickThrough: ClickThrough?,
+    val clickTracking: List<ClickTracking>?,
+    val customClick: List<CustomClick>?
+)
+
+data class ClickThrough(
+    val id: String?,
+    val uri: String
+)
+
+data class ClickTracking(
+    val id: String?,
+    val uri: String
+)
+
+data class CustomClick(
+    val id: String?,
+    val uri: String
+)
+
+data class MediaFile(
+    val id: String?,
+    val delivery: String,
+    val type: String,
+    val width: Int,
+    val height: Int,
+    val codec: String?,
+    val bitrate: Int?,
+    val minBitrate: Int?,
+    val maxBitrate: Int?,
+    val scalable: Boolean?,
+    val maintainAspectRatio: Boolean?,
+    val fileSize: Int?,
+    val mediaType: String?,
+    val apiFramework: String?,
+    val uri: String
+)
+
+data class AdParameters(
+    val xmlEncoded: Boolean?,
+    val value: String
+)
+
+data class CompanionAds(
+    val companions: List<Companion>
+)
+
+data class Companion(
+    val id: String?,
+    val width: Int,
+    val height: Int,
+    val assetWidth: Int?,
+    val assetHeight: Int?,
+    val expandedWidth: Int?,
+    val expandedHeight: Int?,
+    val apiFramework: String?,
+    val adSlotId: String?,
+    val pxratio: String?,
+    val staticResource: StaticResource?,
+    val iframeResource: IFrameResource?,
+    val htmlResource: HTMLResource?,
+    val adParameters: AdParameters?,
+    val altText: String?,
+    val companionClickThrough: CompanionClickThrough?,
+    val companionClickTracking: List<CompanionClickTracking>?,
+    val trackingEvents: List<Tracking>?
+)
+
+data class StaticResource(
+    val creativeType: String,
+    val uri: String
+)
+
+data class IFrameResource(
+    val uri: String
+)
+
+data class HTMLResource(
+    val value: String
+)
+
+data class CompanionClickThrough(
+    val uri: String
+)
+
+data class CompanionClickTracking(
+    val id: String?,
+    val uri: String
+)
+
+data class NonLinearAds(
+    val nonLinears: List<NonLinear>,
+    val trackingEvents: List<Tracking>?
+)
+
+data class NonLinear(
+    val id: String?,
+    val width: Int,
+    val height: Int,
+    val expandedWidth: Int?,
+    val expandedHeight: Int?,
+    val scalable: Boolean?,
+    val maintainAspectRatio: Boolean?,
+    val minSuggestedDuration: String?,
+    val apiFramework: String?,
+    val adSlotId: String?,
+    val staticResource: StaticResource?,
+    val iframeResource: IFrameResource?,
+    val htmlResource: HTMLResource?,
+    val adParameters: AdParameters?,
+    val nonLinearClickThrough: NonLinearClickThrough?,
+    val nonLinearClickTracking: List<NonLinearClickTracking>?
+)
+
+data class NonLinearClickThrough(
+    val uri: String
+)
+
+data class NonLinearClickTracking(
+    val id: String?,
+    val uri: String
+)
+
+data class Extension(
+    val type: String?,
+    val value: String
+)
