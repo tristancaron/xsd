@@ -134,3 +134,15 @@ data class TagGroup(
     val typeName: String = memberName.capitalize()
 }
 
+// Data classes for vast.xsd elements and attributes
+data class VastElement(
+    val name: String,
+    val attributes: List<VastAttribute>,
+    val children: List<VastElement>
+)
+
+data class VastAttribute(
+    val name: String,
+    val type: String,
+    val required: Boolean
+)

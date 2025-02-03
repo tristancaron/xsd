@@ -9,6 +9,8 @@ import javax.xml.parsers.SAXParserFactory
 
 val SCHEME_URL = "html_5.xsd".asResourceUrl()
 const val HTML_NAMESPACE = "html-5"
+val VAST_SCHEME_URL = "vast.xsd".asResourceUrl()
+const val VAST_NAMESPACE = "http://www.iab.com/VAST"
 
 private fun flattenTerm(term: XSTerm, result: MutableCollection<String>, visitedModelNames: MutableSet<String>) {
     if (term.isElementDecl) {
@@ -100,31 +102,6 @@ fun fillRepository(repository: Repository) {
         if (!repository.attributeFacades.containsKey(attributeGroup.name)) {
             repository.attributeFacades[attributeGroup.name] = parseAttributeFacade(repository, attributeGroup)
         }
-        /*
-        repository.attributeFacades.computeIfAbsent(attributeGroup.name) { _ ->
-            parseAttributeFacade(repository, attributeGroup)
-        }
-        */
-        /*
-        val requiredNames = HashSet<String>()
-        val facadeAttributes = attributeGroup.attributeUses.map { attributeUse ->
-            val attributeDeclaration = attributeUse.decl
-            if (attributeUse.isRequired) {
-                requiredNames.add(attributeDeclaration.name)
-            }
-
-            handleAttributeDeclaration("", attributeDeclaration).handleSpecialType()
-        }.filter { it.name !in alreadyIncluded }
-                .filter { !it.name.startsWith("On") }
-                .sortedBy { it.name }
-
-        val name = attributeGroup.name
-
-        if (facadeAttributes.isNotEmpty()) {
-            repository.attributeFacades[name] = AttributeFacade(name, facadeAttributes, requiredNames, emptyList())
-            alreadyIncluded.addAll(facadeAttributes.map { it.name })
-        }
-        */
     }
 
     schema.modelGroupDecls.values.forEach { modelGroupDeclaration ->
@@ -143,6 +120,98 @@ fun fillRepository(repository: Repository) {
     }
 
     schema.elementDecls.values.forEach { elementDeclaration ->
+        val name = elementDeclaration.name
+        val type = elementDeclaration.type
+        val suggestedNames = HashSet<String>()
+        globalSuggestedAttributes[name]?.let { attributes ->
+            suggestedNames.addAll(attributes.filter { !it.startsWith("-") })
+        }
+        val excluded = globalSuggestedAttributes[name]
+            ?.filter { it.startsWith("-") }
+            ?.map { it.removePrefix("-") }
+            ?.toSet()
+            ?: emptySet()
+
+        val tagInfo: TagInfo
+        if (type.isComplexType) {
+            val complex = type.asComplexType()
+            val groupDeclarations = complex.attGroups.distinct().sortedBy { it.name }
+            val attributeGroups = groupDeclarations.mapNotNull { repository.attributeFacades[it.name] }
+
+            val attributes = complex.declaredAttributeUses.map {
+                if (it.isRequired) {
+                    suggestedNames.add(it.decl.name)
+                }
+
+                handleAttributeDeclaration(name.humanize(), it.decl).handleSpecialType(name)
+            }
+
+            val children = HashSet<String>()
+            val modelGroupNames = HashSet<String>()
+            val contentTerm = complex.contentType?.asParticle()?.term
+            val directChildren = ArrayList<String>()
+            if (contentTerm != null) {
+                flattenTerm(contentTerm, children, modelGroupNames)
+                if (contentTerm.isModelGroup) {
+                    directChildren.addAll(
+                        contentTerm.asModelGroup()
+                            .children
+                            .map { it.term }
+                            .filter { it.isElementDecl }
+                            .map { it.asElementDecl().name },
+                    )
+                }
+            }
+
+            modelGroupNames.addAll(repository.groupsByTags[name]?.map { it.name }.orEmpty())
+
+            suggestedNames.addAll(attributes.filter { it.type == AttributeType.ENUM }.map { it.name })
+            suggestedNames.addAll(attributes.filter { it.name in globalSuggestedAttributeNames }.map { it.name })
+            suggestedNames.addAll(attributeGroups.flatMap { it.attributes }.filter { it.name in globalSuggestedAttributeNames }.map { it.name })
+            suggestedNames.removeAll(excluded)
+
+            tagInfo = TagInfo(
+                name = name,
+                possibleChildren = children.toList().sorted(),
+                directChildren = directChildren,
+                attributeGroups = attributeGroups,
+                attributes = attributes,
+                suggestedAttributes = suggestedNames,
+                tagGroupNames = modelGroupNames.sorted(),
+            )
+        } else {
+            throw UnsupportedOperationException()
+        }
+
+        repository.tags[name] = tagInfo
+    }
+
+    // Parse vast.xsd
+    parser.parse(VAST_SCHEME_URL)
+    val vastSchema = parser.result.getSchema(VAST_NAMESPACE)
+
+    vastSchema.attGroupDecls.values.sortedByDescending { it.attributeUses.size }.forEach { attributeGroup ->
+        if (!repository.attributeFacades.containsKey(attributeGroup.name)) {
+            repository.attributeFacades[attributeGroup.name] = parseAttributeFacade(repository, attributeGroup)
+        }
+    }
+
+    vastSchema.modelGroupDecls.values.forEach { modelGroupDeclaration ->
+        val name = modelGroupDeclaration.name
+        val children = modelGroupDeclaration.modelGroup
+                .children
+                .map { it.term }
+                .filter { it.isElementDecl }
+                .map { it.asElementDecl().name }
+
+        val group = TagGroup(name, children)
+        repository.tagGroups[name] = group
+        children.forEach {
+            repository.groupsByTags.getOrPut(it) { ArrayList<TagGroup>() }.add(group)
+        }
+    }
+
+    vastSchema.elementDecls.values.forEach { elementDeclaration ->
         val name = elementDeclaration.name
         val type = elementDeclaration.type
         val suggestedNames = HashSet<String>()
